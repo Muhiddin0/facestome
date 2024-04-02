@@ -32,6 +32,7 @@ app = FastAPI()
 DB_DIR = './base/'
 # Solishtiriladigan rasimlarni saqlash uchun asosiy katalog
 UPLOAD_DIRECTORY = './uploads/'
+MODEL_NAME = 'Facenet'
 
 # foydalanuvchini bazadan tekshirish
 @app.post("/identify")
@@ -49,8 +50,7 @@ async def identify(img: UploadFile = File(...)):
         }
     """
 
-    files_count = len(os.listdir(UPLOAD_DIRECTORY))
-    
+    files_count = len(os.listdir(UPLOAD_DIRECTORY))    
     file_name = str(files_count) + " " + img.filename
     file_path = os.path.join(UPLOAD_DIRECTORY, file_name)
     
@@ -63,15 +63,25 @@ async def identify(img: UploadFile = File(...)):
         )
         
     # vaqtinchalik faylni olib tashlandi
-    os.remove(file_path)
     
     # bazada topilgan rasimlar
     images = [row["identity"] for index, row in results[0].iterrows()]
+
+    results = []
+    for i in images:
+        img1 = DeepFace.detectFace(i)
+        img2 = DeepFace.detectFace(file_path)
+
+        result = DeepFace.verify(img1_path=i, img2_path=file_path, model_name=MODEL_NAME)
+        if result["verified"]:
+            results.append(file_path)
     
+    os.remove(file_path)
+
     # javobni yuborish
     return {
-        'is-user': bool(images),
-        'images': images
+        'is-user': bool(results),
+        'images': results
     }
 
 # foydalanuvchi yaratish uchun
